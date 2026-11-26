@@ -3,6 +3,8 @@ import Search from './components/Search.jsx'
 import Spinner from './components/Spinner.jsx'
 import MovieCard from './components/MovieCard.jsx'
 import MovieModal from './components/MovieModal.jsx'
+import GenreChips from './components/GenreChips.jsx'
+import { GENRES } from './genres.js'
 import { useDebounce } from 'react-use'
 import { getTrendingMovies, updateSearchCount } from './appwrite.js'
 
@@ -22,6 +24,8 @@ const App = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [selectedGenre, setSelectedGenre] = useState(null);
+
   const [movieList, setMovieList] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +35,8 @@ const App = () => {
 
   const [suggestedMovies, setSuggestedMovies] = useState([]);
   const [suggestionTitle, setSuggestionTitle] = useState('');
+
+  const genreName = GENRES.find((genre) => genre.id === selectedGenre)?.name;
 
   // Debounce the search term to prevent making too many API requests
   // by waiting for the user to stop typing for 500ms
@@ -68,15 +74,16 @@ const App = () => {
     setSuggestedMovies((data.results || []).slice(0, 10));
   }
 
-  const fetchMovies = async (query = '') => {
+  const fetchMovies = async (query = '', genreId = null) => {
     setIsLoading(true);
     setErrorMessage('');
     setSuggestedMovies([]);
 
     try {
+      // Searching uses the search endpoint; otherwise browse by popularity (and genre)
       const endpoint = query
         ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
-        : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+        : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc${genreId ? `&with_genres=${genreId}` : ''}`;
 
       const response = await fetch(endpoint, API_OPTIONS);
 
@@ -93,7 +100,13 @@ const App = () => {
       }
 
       const results = data.results || [];
-      setMovieList(results);
+
+      // Search results can't be filtered by TMDB, so filter them by genre here
+      const visibleMovies = genreId
+        ? results.filter((movie) => movie.genre_ids?.includes(genreId))
+        : results;
+
+      setMovieList(visibleMovies);
 
       if(query && results.length > 0) {
         await updateSearchCount(query, results[0]);
@@ -122,8 +135,8 @@ const App = () => {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
-    fetchMovies(debouncedSearchTerm);
-  }, [debouncedSearchTerm]);
+    fetchMovies(debouncedSearchTerm, selectedGenre);
+  }, [debouncedSearchTerm, selectedGenre]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
@@ -140,9 +153,11 @@ const App = () => {
           <h1>Find <span className="text-gradient">Movies</span> You'll Enjoy Without the Hassle</h1>
 
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+
+          <GenreChips selectedGenre={selectedGenre} onSelect={setSelectedGenre} />
         </header>
 
-        {!searchTerm && trendingMovies.length > 0 && (
+        {!searchTerm && !selectedGenre && trendingMovies.length > 0 && (
           <section className="trending">
             <h2>Trending Movies</h2>
 
@@ -162,16 +177,18 @@ const App = () => {
         )}
 
         <section className="all-movies">
-          <h2>All Movies</h2>
+          <h2>{genreName ? `${genreName} Movies` : 'All Movies'}</h2>
 
           {isLoading ? (
             <Spinner />
           ) : errorMessage ? (
             <p className="text-red-500">{errorMessage}</p>
-          ) : movieList.length === 0 && debouncedSearchTerm ? (
+          ) : movieList.length === 0 && (debouncedSearchTerm || selectedGenre) ? (
             <div>
               <p className="text-gray-100 text-lg">
-                No results found for "{debouncedSearchTerm}".
+                {debouncedSearchTerm
+                  ? `No results found for "${debouncedSearchTerm}"${genreName ? ` in ${genreName}` : ''}.`
+                  : `No ${genreName} movies found.`}
               </p>
 
               {suggestedMovies.length > 0 && (
