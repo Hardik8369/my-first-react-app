@@ -27,13 +27,49 @@ const App = () => {
 
   const [trendingMovies, setTrendingMovies] = useState([]);
 
+  const [suggestedMovies, setSuggestedMovies] = useState([]);
+  const [suggestionTitle, setSuggestionTitle] = useState('');
+
   // Debounce the search term to prevent making too many API requests
   // by waiting for the user to stop typing for 500ms
   useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm])
 
+  // When a search finds nothing, find similar or popular movies to suggest
+  const loadSuggestions = async (query) => {
+    // Try shorter versions of the search (handles typos at the end)
+    let shorter = query.trim();
+
+    for (let attempt = 0; attempt < 5 && shorter.length > 3; attempt++) {
+      shorter = shorter.slice(0, -1);
+
+      const response = await fetch(
+        `${API_BASE_URL}/search/movie?query=${encodeURIComponent(shorter)}`,
+        API_OPTIONS
+      );
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        setSuggestionTitle('Similar movies you might like');
+        setSuggestedMovies(data.results.slice(0, 10));
+        return;
+      }
+    }
+
+    // Still nothing, so show popular movies instead
+    const response = await fetch(
+      `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`,
+      API_OPTIONS
+    );
+    const data = await response.json();
+
+    setSuggestionTitle('Popular movies you might like');
+    setSuggestedMovies((data.results || []).slice(0, 10));
+  }
+
   const fetchMovies = async (query = '') => {
     setIsLoading(true);
     setErrorMessage('');
+    setSuggestedMovies([]);
 
     try {
       const endpoint = query
@@ -54,10 +90,15 @@ const App = () => {
         return;
       }
 
-      setMovieList(data.results || []);
+      const results = data.results || [];
+      setMovieList(results);
 
-      if(query && data.results.length > 0) {
-        await updateSearchCount(query, data.results[0]);
+      if(query && results.length > 0) {
+        await updateSearchCount(query, results[0]);
+      }
+
+      if(query && results.length === 0) {
+        await loadSuggestions(query);
       }
     } catch (error) {
       console.error(`Error fetching movies: ${error}`);
@@ -71,13 +112,13 @@ const App = () => {
     try {
       const movies = await getTrendingMovies();
 
-      setTrendingMovies(movies);
+      setTrendingMovies(movies || []);
     } catch (error) {
       console.error(`Error fetching trending movies: ${error}`);
     }
   }
 
-   useEffect(() => {
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
     fetchMovies(debouncedSearchTerm);
   }, [debouncedSearchTerm]);
@@ -121,6 +162,24 @@ const App = () => {
             <Spinner />
           ) : errorMessage ? (
             <p className="text-red-500">{errorMessage}</p>
+          ) : movieList.length === 0 && debouncedSearchTerm ? (
+            <div>
+              <p className="text-gray-100 text-lg">
+                No results found for "{debouncedSearchTerm}".
+              </p>
+
+              {suggestedMovies.length > 0 && (
+                <div className="mt-10">
+                  <h2>{suggestionTitle}</h2>
+
+                  <ul>
+                    {suggestedMovies.map((movie) => (
+                      <MovieCard key={movie.id} movie={movie} />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           ) : (
             <ul>
               {movieList.map((movie) => (
