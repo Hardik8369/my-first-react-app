@@ -8,6 +8,51 @@ import {
   resetPassword,
 } from './appwrite.js'
 
+const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+
+// Wall of trending movie posters shown behind the login form
+const LoginBackground = () => {
+  const [posters, setPosters] = useState([]);
+
+  useEffect(() => {
+    fetch('https://api.themoviedb.org/3/trending/movie/week', {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        Authorization: `Bearer ${API_KEY}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const paths = (data.results || [])
+          .filter((movie) => movie.poster_path)
+          .slice(0, 28)
+          .map((movie) => movie.poster_path);
+
+        setPosters(paths);
+      })
+      .catch((err) => console.error(err));
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-0 overflow-hidden bg-[#030014]">
+      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-3 p-3 -rotate-6 scale-125 opacity-50">
+        {posters.map((path, index) => (
+          <img
+            key={`${path}-${index}`}
+            src={`https://image.tmdb.org/t/p/w185${path}`}
+            alt=""
+            className="w-full rounded-lg"
+          />
+        ))}
+      </div>
+
+      {/* Dark overlay so the form is easy to read */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#030014]/70 via-[#030014]/60 to-[#030014]" />
+    </div>
+  )
+}
+
 // Password box with the show/hide eye
 const PasswordInput = ({ value, onChange, placeholder }) => {
   const [show, setShow] = useState(false);
@@ -235,104 +280,108 @@ const AuthGate = ({ children }) => {
 
   // Not logged in: show the login / signup / forgot / reset form
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white/5 rounded-xl p-6 flex flex-col gap-4 text-white"
-      >
-        <h1 className="text-2xl font-bold text-center">{titles[mode]}</h1>
+    <>
+      <LoginBackground />
 
-        {mode === 'forgot' && (
-          <p className="text-sm text-gray-300 text-center">
-            Enter your email and we will send you a link to reset your password.
-          </p>
-        )}
-
-        {mode === 'signup' && (
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="px-3 py-2 rounded-md bg-white/10 outline-none"
-          />
-        )}
-
-        {mode !== 'reset' && (
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="px-3 py-2 rounded-md bg-white/10 outline-none"
-          />
-        )}
-
-        {(mode === 'login' || mode === 'signup' || mode === 'reset') && (
-          <PasswordInput
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={mode === 'reset' ? 'New password (min 8 characters)' : 'Password (min 8 characters)'}
-          />
-        )}
-
-        {mode === 'login' && (
-          <button
-            type="button"
-            onClick={() => switchMode('forgot')}
-            className="text-sm text-indigo-400 underline self-end cursor-pointer"
-          >
-            Forgot password?
-          </button>
-        )}
-
-        {message && <p className="text-green-400 text-sm">{message}</p>}
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="py-2 rounded-md bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 cursor-pointer"
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+        <form
+          onSubmit={handleSubmit}
+          className="w-full max-w-sm bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-6 flex flex-col gap-4 text-white shadow-2xl"
         >
-          {loading ? 'Please wait...' : buttonLabels[mode]}
-        </button>
+          <h1 className="text-2xl font-bold text-center">{titles[mode]}</h1>
 
-        {mode === 'login' && (
-          <p className="text-sm text-center text-gray-300">
-            Don't have an account?{' '}
-            <button type="button" onClick={() => switchMode('signup')} className="text-indigo-400 underline cursor-pointer">
-              Sign up
+          {mode === 'forgot' && (
+            <p className="text-sm text-gray-300 text-center">
+              Enter your email and we will send you a link to reset your password.
+            </p>
+          )}
+
+          {mode === 'signup' && (
+            <input
+              type="text"
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="px-3 py-2 rounded-md bg-white/10 outline-none"
+            />
+          )}
+
+          {mode !== 'reset' && (
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="px-3 py-2 rounded-md bg-white/10 outline-none"
+            />
+          )}
+
+          {(mode === 'login' || mode === 'signup' || mode === 'reset') && (
+            <PasswordInput
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={mode === 'reset' ? 'New password (min 8 characters)' : 'Password (min 8 characters)'}
+            />
+          )}
+
+          {mode === 'login' && (
+            <button
+              type="button"
+              onClick={() => switchMode('forgot')}
+              className="text-sm text-indigo-400 underline self-end cursor-pointer"
+            >
+              Forgot password?
             </button>
-          </p>
-        )}
+          )}
 
-        {mode === 'signup' && (
-          <p className="text-sm text-center text-gray-300">
-            Already have an account?{' '}
-            <button type="button" onClick={() => switchMode('login')} className="text-indigo-400 underline cursor-pointer">
-              Login
-            </button>
-          </p>
-        )}
+          {message && <p className="text-green-400 text-sm">{message}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
-        {(mode === 'forgot' || mode === 'reset') && (
           <button
-            type="button"
-            onClick={() => {
-              if (mode === 'reset') {
-                window.history.replaceState({}, '', window.location.pathname);
-              }
-              switchMode('login');
-            }}
-            className="text-sm text-indigo-400 underline cursor-pointer"
+            type="submit"
+            disabled={loading}
+            className="py-2 rounded-md bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 cursor-pointer"
           >
-            Back to login
+            {loading ? 'Please wait...' : buttonLabels[mode]}
           </button>
-        )}
-      </form>
-    </div>
+
+          {mode === 'login' && (
+            <p className="text-sm text-center text-gray-300">
+              Don't have an account?{' '}
+              <button type="button" onClick={() => switchMode('signup')} className="text-indigo-400 underline cursor-pointer">
+                Sign up
+              </button>
+            </p>
+          )}
+
+          {mode === 'signup' && (
+            <p className="text-sm text-center text-gray-300">
+              Already have an account?{' '}
+              <button type="button" onClick={() => switchMode('login')} className="text-indigo-400 underline cursor-pointer">
+                Login
+              </button>
+            </p>
+          )}
+
+          {(mode === 'forgot' || mode === 'reset') && (
+            <button
+              type="button"
+              onClick={() => {
+                if (mode === 'reset') {
+                  window.history.replaceState({}, '', window.location.pathname);
+                }
+                switchMode('login');
+              }}
+              className="text-sm text-indigo-400 underline cursor-pointer"
+            >
+              Back to login
+            </button>
+          )}
+        </form>
+      </div>
+    </>
   )
 }
 
