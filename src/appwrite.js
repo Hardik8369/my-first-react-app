@@ -1,4 +1,4 @@
-import { Client, Databases, ID, Query } from 'appwrite'
+import { Client, Databases, Account, ID, Query } from 'appwrite'
 
 const PROJECT_ID = import.meta.env.VITE_APPWRITE_PROJECT_ID;
 const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID;
@@ -9,6 +9,7 @@ const client = new Client()
   .setProject(PROJECT_ID)
 
 const database = new Databases(client);
+const account = new Account(client);
 
 export const updateSearchCount = async (searchTerm, movie) => {
   // 1. Use Appwrite SDK to check if this movie already exists in the database
@@ -49,4 +50,29 @@ export const getTrendingMovies = async () => {
  } catch (error) {
   console.error(error);
  }
+}
+
+// ---------- Authentication ----------
+
+export const signupUser = async (name, email, password) => {
+  await account.create(ID.unique(), email, password, name);
+  await account.createEmailPasswordSession(email, password);
+  return await account.get();
+}
+
+export const loginUser = async (email, password) => {
+  await account.createEmailPasswordSession(email, password);
+  return await account.get();
+}
+
+export const getCurrentUser = async () => {
+  try {
+    return await account.get();
+  } catch {
+    return null;
+  }
+}
+
+export const logoutUser = async () => {
+  await account.deleteSession('current');
 }
