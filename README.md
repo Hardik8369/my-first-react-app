@@ -12,10 +12,6 @@
   </div>
 
   <h3 align="center">A Movie Application</h3>
-
-   <div align="center">
-     Build this project step by step with our detailed tutorial on <a href="https://www.youtube.com/@javascriptmastery/videos" target="_blank"><b>JavaScript Mastery</b></a> YouTube. Join the JSM family!
-    </div>
 </div>
 
 ## 📋 <a name="table">Table of Contents</a>
@@ -71,8 +67,8 @@ Make sure you have the following installed on your machine:
 **Cloning the Repository**
 
 ```bash
-git clone https://github.com/adrianhajdin/react-movies.git
-cd react-movies
+git clone https://github.com/Hardik8369/my-first-react-app.git
+cd my-first-react-app
 
 ```
 
