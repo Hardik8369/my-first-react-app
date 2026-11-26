@@ -19,13 +19,14 @@
 2. ⚙️ [Tech Stack](#tech-stack)
 3. 🔋 [Features](#features)
 4. 🤸 [Quick Start](#quick-start)
-5. 🌐 [Working Site](#working-site)
-
+5. 🗄️ [Appwrite Setup](#appwrite-setup)
+6. 🚀 [Deployment](#deployment)
+7. 🌐 [Working Site](#working-site)
 
 
 ## <a name="introduction">🤖 Introduction</a>
 
-Built with React.js for the user interface, Appwrite for backend services, and styled with TailwindCSS, this Movie App lets users browse trending movies, search titles, and explore content using the TMDB API. It features a responsive layout and a sleek, modern design.
+Built with React.js for the user interface, Appwrite for backend services and authentication, and styled with TailwindCSS, this Movie App lets logged-in users browse trending movies, search titles, and explore content using the TMDB API. It features a responsive layout and a sleek, modern design.
 
 ## <a name="tech-stack">⚙️ Tech Stack</a>
 
@@ -39,14 +40,32 @@ Built with React.js for the user interface, Appwrite for backend services, and s
 
 - **[Vite](https://vite.dev/)** is a modern build tool that provides a fast development environment for frontend projects. It offers features like hot module replacement (HMR) and optimized builds, enhancing the development experience and performance.
 
+- **[TMDB API](https://developer.themoviedb.org/reference/intro/getting-started)** provides the movie data: posters, ratings, search results, trending lists and external IDs.
+
+- **[Vercel](https://vercel.com/)** hosts the live site and redeploys automatically on every push to GitHub.
+
 
 ## <a name="features">🔋 Features</a>
 
 👉 **Browse All Movies**: Explore a wide range of movies available on the platform.
 
-👉 **Search Movies**: Easily search for specific movies using a search function.
+👉 **Search Movies**: Easily search for specific movies using a debounced search box that avoids unnecessary API calls.
 
-👉 **Trending Movies Algorithm**: Displays trending movies based on a dynamic algorithm.
+👉 **No Results & Suggestions**: When a search finds nothing, the app shows a "No results found" message and suggests similar or popular movies instead.
+
+👉 **Trending Movies Algorithm**: Displays the top 5 trending movies based on how often each movie is searched, stored in Appwrite. Each movie has a single entry, so the list never repeats a movie. The trending section hides while the user is searching.
+
+👉 **IMDb Links**: Clicking a movie card opens that movie's IMDb page in a new tab (falls back to the TMDB page if no IMDb ID exists).
+
+👉 **Authentication**: Login and signup with email and password using Appwrite Auth, with the session kept after a page refresh.
+
+👉 **Show / Hide Password**: An eye icon on the password fields to reveal or hide what you type.
+
+👉 **Forgot Password**: Email reset link sent through Appwrite, with a "Set new password" screen when the link is opened.
+
+👉 **Profile Menu**: A profile icon at the top right showing the user's name, email and join date, with the Logout button inside it.
+
+👉 **Movie Poster Login Page**: The login page has a wall of this week's trending movie posters as its background.
 
 👉 **Modern UI/UX**: A sleek and user-friendly interface designed for a great experience.
 
@@ -94,13 +113,42 @@ VITE_APPWRITE_DATABASE_ID=
 VITE_APPWRITE_COLLECTION_ID=
 ```
 
-Replace the placeholder values with your actual **[TheMovieDatabase API](https://developer.themoviedb.org/reference/intro/getting-started)** and **[Appwrite](https://apwr.dev/JSM050)** credentials.
+Replace the placeholder values with your actual **[TheMovieDatabase API](https://developer.themoviedb.org/reference/intro/getting-started)** and **[Appwrite](https://apwr.dev/JSM050)** credentials. For `VITE_TMDB_API_KEY`, use the **API Read Access Token** from your TMDB account.
 
 **Running the Project**
 
 ```bash
 npm run dev
 ```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+## <a name="appwrite-setup">🗄️ Appwrite Setup</a>
+
+1. Create a project in the [Appwrite Console](https://cloud.appwrite.io/) and copy its **Project ID**.
+2. Under **Apps**, add a **Web** app with the hostname `localhost`. When you deploy, add your live hostname too (for example `*.vercel.app`), or Appwrite will block requests with a CORS error.
+3. Create a database (TablesDB) and copy its **Database ID**.
+4. Create a table named `metrics` and copy its ID (used as `VITE_APPWRITE_COLLECTION_ID`).
+5. Add these columns to the table:
+
+| Key | Type | Size | Required |
+|---|---|---|---|
+| `searchTerm` | string | 255 | yes |
+| `count` | integer | n/a | yes |
+| `poster_url` | string | 255 | no |
+| `movie_id` | integer | n/a | yes |
+
+6. In the table's **Security** tab, add the role **Any** with Create, Read, Update and Delete permissions.
+7. Make sure **Auth → Settings** has **Email/Password** enabled (it is on by default).
+
+## <a name="deployment">🚀 Deployment</a>
+
+The site is deployed on Vercel:
+
+1. Push the project to GitHub.
+2. In Vercel, click **Add New → Project** and import the repository. The Vite preset is detected automatically.
+3. Add the four environment variables from `.env.local` (`VITE_TMDB_API_KEY`, `VITE_APPWRITE_PROJECT_ID`, `VITE_APPWRITE_DATABASE_ID`, `VITE_APPWRITE_COLLECTION_ID`).
+4. Click **Deploy**. Every later `git push` redeploys the site automatically.
 
 ## <a name="working-site">🌐 Working Site</a>
 
