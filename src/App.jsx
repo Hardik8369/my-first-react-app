@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Search from './components/Search.jsx'
 import Spinner from './components/Spinner.jsx'
 import MovieCard from './components/MovieCard.jsx'
+import MovieModal from './components/MovieModal.jsx'
 import { useDebounce } from 'react-use'
 import { getTrendingMovies, updateSearchCount } from './appwrite.js'
 
@@ -26,6 +27,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [trendingMovies, setTrendingMovies] = useState([]);
+  const [selectedTrendingId, setSelectedTrendingId] = useState(null);
 
   const [suggestedMovies, setSuggestedMovies] = useState([]);
   const [suggestionTitle, setSuggestionTitle] = useState('');
@@ -146,7 +148,11 @@ const App = () => {
 
             <ul>
               {trendingMovies.map((movie, index) => (
-                <li key={movie.$id}>
+                <li
+                  key={movie.$id}
+                  onClick={() => setSelectedTrendingId(movie.movie_id)}
+                  className="cursor-pointer"
+                >
                   <p>{index + 1}</p>
                   <img src={movie.poster_url} alt={movie.title} />
                 </li>
@@ -189,6 +195,13 @@ const App = () => {
           )}
         </section>
       </div>
+
+      {selectedTrendingId && (
+        <MovieModal
+          movieId={selectedTrendingId}
+          onClose={() => setSelectedTrendingId(null)}
+        />
+      )}
     </main>
   )
 }
