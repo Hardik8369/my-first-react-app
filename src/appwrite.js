@@ -76,3 +76,15 @@ export const getCurrentUser = async () => {
 export const logoutUser = async () => {
   await account.deleteSession('current');
 }
+
+// ---------- Password recovery ----------
+
+// Sends the reset email. The link in the email points back to this site.
+export const sendRecoveryEmail = async (email) => {
+  await account.createRecovery(email, window.location.origin);
+}
+
+// Called with the userId and secret that come from the link in the email
+export const resetPassword = async (userId, secret, password) => {
+  await account.updateRecovery(userId, secret, password);
+}
