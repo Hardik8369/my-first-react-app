@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   getCurrentUser,
   loginUser,
@@ -44,6 +44,82 @@ const PasswordInput = ({ value, onChange, placeholder }) => {
           </svg>
         )}
       </button>
+    </div>
+  )
+}
+
+// Profile icon at the top right with a dropdown card (user details + logout)
+const ProfileMenu = ({ user, onLogout }) => {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  const displayName = user.name || user.email;
+  const initial = displayName.charAt(0).toUpperCase();
+  const joined = user.$createdAt
+    ? new Date(user.$createdAt).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '';
+
+  // Close the dropdown when clicking outside of it or pressing Escape
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
+  return (
+    <div ref={menuRef} className="fixed top-4 right-4 z-50 text-white">
+      <button
+        onClick={() => setOpen(!open)}
+        aria-label="Open profile menu"
+        className="w-10 h-10 rounded-full bg-indigo-500 hover:bg-indigo-400 font-bold text-lg flex items-center justify-center cursor-pointer"
+      >
+        {initial}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#0f0d23] border border-white/10 shadow-lg p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 shrink-0 rounded-full bg-indigo-500 font-bold text-xl flex items-center justify-center">
+              {initial}
+            </div>
+
+            <div className="min-w-0">
+              <p className="font-semibold truncate">{user.name || 'User'}</p>
+              <p className="text-sm text-gray-300 truncate">{user.email}</p>
+            </div>
+          </div>
+
+          {joined && (
+            <p className="text-xs text-gray-400">Member since {joined}</p>
+          )}
+
+          <hr className="border-white/10" />
+
+          <button
+            onClick={onLogout}
+            className="w-full py-2 rounded-md bg-white/10 hover:bg-white/20 text-sm cursor-pointer"
+          >
+            Logout
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -131,20 +207,12 @@ const AuthGate = ({ children }) => {
     );
   }
 
-  // Logged in: show the real app, plus a logout button
+  // Logged in: show the real app, plus the profile icon
   // (not while the visitor is resetting a password from the email link)
   if (user && mode !== 'reset') {
     return (
       <>
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-3 text-white">
-          <span className="text-sm">Hi, {user.name || user.email}</span>
-          <button
-            onClick={handleLogout}
-            className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-sm cursor-pointer"
-          >
-            Logout
-          </button>
-        </div>
+        <ProfileMenu user={user} onLogout={handleLogout} />
 
         {children}
       </>
